@@ -1,0 +1,622 @@
+#make_bin#
+
+#LOAD_SEGMENT=FFFFh#
+#LOAD_OFFSET=0000h#
+
+#CS=0000h#
+#IP=0000h#
+
+#DS=0000h#
+#ES=0000h#
+
+#SS=0000h#
+#SP=FFFEh#
+
+#AX=0000h#
+#BX=0000h#
+#CX=0000h#
+#DX=0000h#
+#SI=0000h#
+#DI=0000h#
+#BP=0000h#
+
+; add your code here
+
+
+jmp     st1
+db 00h
+dw 0000h
+dw 0000h
+dw ad_isr
+dw 0000h
+db 1012 dup(0)
+
+;main program
+;declarations
+;ports for 8255(1) ;motor & ir sensors;
+porta1 equ 80h
+portb1 equ 82h
+portc1 equ 84h
+creg1 equ 86h
+;ports for  8255(2) ;adc & gyro sensors;
+porta2 equ 90h
+portb2 equ 92h
+portc2 equ 94h
+creg2 equ 96h
+;ports for 8253(1) ;sqr wave , PWM 1 & 2
+cnt0_1 equ 0A0h
+cnt1_1 equ 0A2h
+cnt2_1 equ 0A4h
+cregc_1 equ 0A6h
+;ports for 8253(2) ;PWM 3 & 4
+cnt0_2 equ 0B0h
+cnt1_2 equ 0B2h
+cnt2_2 equ 0B4h
+cregc_2 equ 0B6h
+
+
+st1:      cli
+; intialize ds, es,ss to start of RAM
+mov       ax,0200h
+mov       ds,ax
+mov       es,ax
+mov       ss,ax
+mov       sp,0FFFEH
+
+;initialise RAM memory locations to be used later
+mov current_gyro, 00h
+
+mov 100_angle1, 0000h
+mov old_velocity1, 0000h
+
+mov 100_angle2, 0000h
+mov old_velocity2, 0000h
+
+mov 100_angle3, 0000h
+mov old_velocity3, 0000h
+
+;initialise 8255
+;intialise 8255(1) ;motor & ir sensors;
+mov al, 10000011b ;port a : o/p; port cu : o/p, port cl : i/p, port b unused
+out creg1, al
+;intialise 8255(2) ;adc & gyro sensors;
+mov al, 10010010b ;port a : i/p; port cu : o/p, port cl : o/p, port b unused
+out creg2, al
+
+;initialise 8253
+;initialise 8253(1); sqr wave(MODE3) , PWM 1 & 2 (MODE1)
+;counter 0
+mov al, 00110110b ;counter0, LSB followed by MSB, mode 3, Binary
+out cregc_1, al
+;counter 1
+mov al, 01110010b;counter1, LSB followed by MSB, mode 1, Binary
+out cregc_1, al
+;counter 2
+mov al, 10110010b;counter2, LSB followed by MSB, mode 1, Binary
+out cregc_1, al
+;initialise 8253(2); PWM 3 & 4 (MODE1)
+;counter 0
+mov al, 00110010b;counter0, LSB followed by MSB, mode 1, Binary
+out cregc_2, al
+;counter 1
+mov al, 01110010b;counter1, LSB followed by MSB, mode 1, Binary
+out cregc_2, al
+
+;load counts in 8253
+;load count of 25,000d (61A8H) in counter0 of 8253(1)
+mov al, 0A8h;LSB of count
+out cnt0_1, al
+mov al, 61h;MSB of count
+out cnt0_1, al
+;start 50% PWM cycles in all motors, load COUNT = 5*2500 = 12500 = 30D4h
+;counter 1 of 8253(1)
+mov al, 0D4h ;LSB
+out cnt1_1, al
+mov al, 30h ;MSB
+out cnt1_1, al
+;counter 2 of 8253(1)
+mov al, 0D4h ;LSB
+out cnt2_1, al
+mov al, 30h ;MSB
+out cnt2_1, al
+;counter 0 of 8253(2)
+mov al, 0D4h ;LSB
+out cnt0_2, al
+mov al, 30h ;MSB
+out cnt0_2, al
+;counter 1 of 8253(2)
+mov al, 0D4h ;LSB
+out cnt1_2, al
+mov al, 30h ;MSB
+out cnt1_2, al
+;to start , give correct input to motor drivers, PWM make PC7 of 8255(2) = 1
+;set port a output (for motor drivers)
+mov al, 10011001b;motor 1,4 anti; motor 2,3 clk
+out porta1, al
+
+;bsr, set PC7 of 8255(2)
+mov al, 00001111b
+out creg2, al
+
+;initally all the IR sensors should be off thus make PC upper of 8255(1) high
+mov al, 11110000b
+out portc1, al
+
+;-------------INITIALISATIONS OVER---------------------;
+;-------------REALTIME THING STARTS--------------------;
+
+;<<<<<<<<<<<<<<           IR             >>>>>>>>>>>>>>
+realtime:
+;check IR sensors connected to lower port c of 8255(1)
+ir_beg:
+in al, portc1
+and al, 00001111b ;as only the lower port c matters
+mov bl, al
+mov bh, al ; bh is for backup
+mov ah, 11111111b ;for the word that we write into port c
+
+ir1:      mov bl, bh
+and bl, 00000001b
+jz ir2
+and ah, 11101111b
+mov al, ah
+out portc1, al
+
+ir2:      mov bl, bh
+and bl, 00000010b
+jz ir3
+and ah, 11011111b
+mov al, ah
+out portc1, al
+
+ir3:      mov bl, bh
+and bl, 00000100b
+jz ir4
+and ah, 10111111b
+mov al, ah
+out portc1, al
+
+ir4:      mov bl, bh
+and bl, 00001000b
+jz end_ir
+and ah, 01111111b
+mov al, ah
+out portc1, al
+
+
+end_ir:
+
+;<<<<<<<<<<<<<<           GYRO           >>>>>>>>>>>>>>
+
+gyro_beg:
+
+g_sel1:
+;make current_gyro = invalid, ie, if NMI is received, it won't do anything with adc value
+mov current_gyro, 0fh
+;select ch0 (gyro 1)
+mov al, 00h
+out portc2, al
+;give ale
+mov al, 00100000b
+out portc2, al
+;give soc
+mov al, 00110000b
+out portc2, al
+
+nop
+nop
+nop
+nop
+;make ale 0
+mov al, 00010000b
+out portc2, al
+;make soc 0
+mov al, 00000000b
+out portc2, al
+;make current_gyro = 1
+mov current_gyro, 01h
+
+;wait some time - interrupt should happen in between this loop
+mov bl, 30
+g_wait1:
+dec bl
+cmp bl, 0
+jnz g_wait1
+
+g_sel2:
+;make current_gyro = invalid, ie, if NMI is received, it won't do anything with adc value
+mov current_gyro, 0fh
+;select ch1 (gyro 2)
+mov al, 01h
+out portc2, al
+;give ale
+mov al, 00100000b
+out portc2, al
+;give soc
+mov al, 00110000b
+out portc2, al
+
+nop
+nop
+nop
+nop
+;make ale 0
+mov al, 00010000b
+out portc2, al
+;make soc 0
+mov al, 00000000b
+out portc2, al
+;make current_gyro = 1
+mov current_gyro, 02h
+
+;wait some time - interrupt should happen in between this loop
+mov bl, 30
+g_wait2:
+dec bl
+cmp bl, 0
+jnz g_wait2
+
+g_sel3:
+;make current_gyro = invalid, ie, if NMI is received, it won't do anything with adc value
+mov current_gyro, 0fh
+;select ch2 (gyro 3)
+mov al, 02h
+out portc2, al
+;give ale
+mov al, 00100000b
+out portc2, al
+;give soc
+mov al, 00110000b
+out portc2, al
+
+nop
+nop
+nop
+nop
+;make ale 0
+mov al, 00010000b
+out portc2, al
+;make soc 0
+mov al, 00000000b
+out portc2, al
+;make current_gyro = 1
+mov current_gyro, 03h
+
+;wait some time - interrupt should happen in between this loop
+mov bl, 30
+g_wait3:
+dec bl
+cmp bl, 0
+jnz g_wait3
+
+;>>>>>>>>>>>>>>>>> INTERRUPT GENERATED <<<<<<<<<<<<<<<<<<<
+
+; using code from the keyboard interfaing as reference
+; delay of approx 1 sec
+mov cx, 8000
+xn: loop xn
+
+;reset ir values
+mov bl, 00h
+mov al, 11111111b
+out portc1, al
+
+;go back to initial realtime starting block
+jmp realtime
+
+;ISR of interrupt generated after conversion is completed
+ad_isr:
+
+mov dl,current_gyro
+cmp dl, 01h
+jz gy_isr1 ;if current_gyro is 1
+cmp dl, 02h
+jz gy_isr2 ;if current_gyro is 2
+cmp dl, 03h
+jz gy_isr3 ;if current_gyro is 3
+
+jmp ad_isr_end ;reset it to 1 for next iteration
+
+gy_isr1:
+mov al, 00001000b ;make oe high
+out creg2,al
+
+in al, porta2 ;read the value given by adc
+sub al, 80h
+;al now has the angular velocity, to get angle integrate
+cbw
+mov dx, ax ;dx has the new velocity
+mov cx, dx ;temp storage
+
+;get 20*new_angle
+add dx, old_velocity1; dx = w(n) + w(n-1)
+mov old_velocity1, cx ;store for next iteration
+mov ax, 100_angle1 ;the old angle
+add dx, ax ;dx holds 20*angle;dx = 20*old_angle +  w(n) + w(n-1)
+
+;DX now has 20*angle
+mov 100_angle1, dx ;store for next iteration
+
+mov al, 00h ;make oe low
+out creg2,al
+
+;manage motor speeds
+;if 100_angle1 aka dx > 0 degrees then speed up motors 2 & 3
+;if dx == 0 don't speed up
+;elseif dx < 0 speed up motors 1 & 4
+;cmp dx, 0B3h ;-60 degrees
+cmp dx, 59h ;-30 degrees
+jl gy_isr1_n60_n30 ; between -60 and -30 (will work for less than -60 also)
+cmp dx, 00h ;0 degrees
+jl gy_isr1_n30_0 ; between -30 and 0
+cmp dx, 00h ;0 degrees
+je gy_isr1_0 ; if it is 0
+cmp dx, 26h ;+30 degrees
+jl gy_isr1_0_30 ; between 0 and +30
+;cmp dx, 4Dh ;+60 degrees
+; anything above 30
+
+;for anything above 30 - load duty cycle of 70%, ie count of 3*2500d =  7500d = 1D4Ch in motors 3
+;                        load duty cycle of 30%, ie count of 7*2500d = 17500d = 445Ch in motors 1
+;counter 1 of 8253(1)
+mov al, 5Ch ;LSB
+out cnt1_1, al
+mov al, 44h ;MSB
+out cnt1_1, al
+;counter 0 of 8253(2)
+mov al, 4Ch ;LSB
+out cnt0_2, al
+mov al, 1Dh ;MSB
+out cnt0_2, al
+
+jmp ad_isr_end
+
+gy_isr1_n60_n30:
+;for -60 < DX < -30 - load duty cycle of 70%, ie count of 3*2500d =  7500d = 1D4Ch in motors 1
+;                     load duty cycle of 30%, ie count of 7*2500d = 17500d = 445Ch in motors 3
+;counter 1 of 8253(1)
+mov al, 4Ch ;LSB
+out cnt1_1, al
+mov al, 1Dh ;MSB
+out cnt1_1, al
+;counter 0 of 8253(2)
+mov al, 5Ch ;LSB
+out cnt0_2, al
+mov al, 44h ;MSB
+out cnt0_2, al
+
+jmp ad_isr_end
+
+gy_isr1_n30_0:
+;for -30 < DX < 0 - load duty cycle of 60%, ie count of 4*2500d = 10000d = 2710h in motors 1
+;                   load duty cycle of 40%, ie count of 6*2500d = 15000d = 3A98h in motors 3
+;counter 1 of 8253(1)
+mov al, 10h ;LSB
+out cnt1_1, al
+mov al, 27h ;MSB
+out cnt1_1, al
+;counter 0 of 8253(2)
+mov al, 98h ;LSB
+out cnt0_2, al
+mov al, 3Ah ;MSB
+out cnt0_2, al
+
+jmp ad_isr_end
+
+gy_isr1_0_30:
+;for 0 < DX < 30 - load duty cycle of 60%, ie count of 4*2500d = 10000d = 2710h in motors 3
+;                  load duty cycle of 40%, ie count of 6*2500d = 15000d = 3A98h in motors 1
+;counter 1 of 8253(1)
+mov al, 98h ;LSB
+out cnt2_1, al
+mov al, 3Ah ;MSB
+out cnt2_1, al
+;counter 0 of 8253(2)
+mov al, 10h ;LSB
+out cnt0_1, al
+mov al, 27h ;MSB
+out cnt0_1, al
+
+jmp ad_isr_end
+
+gy_isr1_0:
+;for DX = 0
+;start 50% PWM cycles in all motors, load COUNT = 5*2500 = 12500 = 30D4h
+;counter 1 of 8253(1)
+mov al, 0D4h ;LSB
+out cnt1_1, al
+mov al, 30h ;MSB
+out cnt1_1, al
+;counter 0 of 8253(2)
+mov al, 0D4h ;LSB
+out cnt0_2, al
+mov al, 30h ;MSB
+out cnt0_2, al
+
+jmp ad_isr_end
+
+gy_isr2:
+mov al, 00001000b ;make oe high
+out creg2,al
+
+in al, porta2 ;read the value given by adc
+sub al, 80h
+;al now has the angular velocity, to get angle integrate
+cbw
+mov dx, ax ;dx has the new velocity
+mov cx, dx ;temp storage
+
+;get 20*new_angle
+add dx, old_velocity2; dx = w(n) + w(n-1)
+mov old_velocity2, cx ;store for next iteration
+mov ax, 100_angle2 ;the old angle
+add dx, ax ;dx holds 20*angle;dx = 20*old_angle +  w(n) + w(n-1)
+
+;DX now has 20*angle
+mov 100_angle2, dx ;store for next iteration
+
+mov al, 00h ;make oe low
+out creg2,al
+
+;manage motor speeds
+;if 100_angle1 aka dx > 0 degrees then speed up motors 2 & 3
+;if dx == 0 don't speed up
+;elseif dx < 0 speed up motors 1 & 4
+;cmp dx, 0B3h ;-60 degrees
+cmp dx, 59h ;-30 degrees
+jl gy_isr2_n60_n30 ; between -60 and -30 (will work for less than -60 also)
+cmp dx, 00h ;0 degrees
+jl gy_isr2_n30_0 ; between -30 and 0
+cmp dx, 00h ;0 degrees
+je gy_isr2_0 ; if it is 0
+cmp dx, 26h ;+30 degrees
+jl gy_isr2_0_30 ; between 0 and +30
+;cmp dx, 4Dh ;+60 degrees
+; anything above 30
+
+;for anything above 30 - load duty cycle of 70%, ie count of 3*2500d =  7500d = 1D4Ch in motors 4
+;                        load duty cycle of 30%, ie count of 7*2500d = 17500d = 445Ch in motors 2
+;counter 2 of 8253(1)
+mov al, 5Ch ;LSB
+out cnt2_1, al
+mov al, 44h ;MSB
+out cnt2_1, al
+;counter 1 of 8253(2)
+mov al, 4Ch ;LSB
+out cnt1_2, al
+mov al, 1Dh ;MSB
+out cnt1_2, al
+
+jmp ad_isr_end
+
+gy_isr2_n60_n30:
+;for -60 < DX < -30 - load duty cycle of 70%, ie count of 3*2500d =  7500d = 1D4Ch in motors 2
+;                     load duty cycle of 30%, ie count of 7*2500d = 17500d = 445Ch in motors 4
+;counter 2 of 8253(1)
+mov al, 4Ch ;LSB
+out cnt2_1, al
+mov al, 1Dh ;MSB
+out cnt2_1, al
+;counter 1 of 8253(2)
+mov al, 5Ch ;LSB
+out cnt1_2, al
+mov al, 44h ;MSB
+out cnt1_2, al
+
+jmp ad_isr_end
+
+gy_isr2_n30_0:
+;for -30 < DX < 0 - load duty cycle of 60%, ie count of 4*2500d = 10000d = 2710h in motors 2
+;                   load duty cycle of 40%, ie count of 6*2500d = 15000d = 3A98h in motors 4
+;counter 2 of 8253(1)
+mov al, 10h ;LSB
+out cnt2_1, al
+mov al, 27h ;MSB
+out cnt2_1, al
+;counter 1 of 8253(2)
+mov al, 98h ;LSB
+out cnt1_2, al
+mov al, 3Ah ;MSB
+out cnt1_2, al
+
+jmp ad_isr_end
+
+gy_isr2_0_30:
+;for 0 < DX < 30 - load duty cycle of 60%, ie count of 4*2500d = 10000d = 2710h in motors 4
+;                  load duty cycle of 40%, ie count of 6*2500d = 15000d = 3A98h in motors 2
+;counter 2 of 8253(1)
+mov al, 98h ;LSB
+out cnt2_1, al
+mov al, 3Ah ;MSB
+out cnt2_1, al
+;counter 1 of 8253(2)
+mov al, 10h ;LSB
+out cnt1_2, al
+mov al, 27h ;MSB
+out cnt1_2, al
+
+jmp ad_isr_end
+
+gy_isr2_0:
+;for DX = 0
+;start 50% PWM cycles in all motors, load COUNT = 5*2500 = 12500 = 30D4h
+;counter 2 of 8253(1)
+mov al, 0D4h ;LSB
+out cnt2_1, al
+mov al, 30h ;MSB
+out cnt2_1, al
+;counter 1 of 8253(2)
+mov al, 0D4h ;LSB
+out cnt1_2, al
+mov al, 30h ;MSB
+out cnt1_2, al
+
+jmp ad_isr_end
+
+gy_isr3:
+mov al, 00001000b ;make oe high
+out creg2,al
+
+in al, porta2 ;read the value given by adc
+sub al, 80h
+;al now has the angular velocity, to get angle integrate
+cbw
+mov dx, ax ;dx has the new velocity
+mov cx, dx ;temp storage
+
+;get 20*new_angle
+add dx, old_velocity3; dx = w(n) + w(n-1)
+mov old_velocity3, cx ;store for next iteration
+mov ax, 100_angle3 ;the old angle
+add dx, ax ;dx holds 20*angle;dx = 20*old_angle +  w(n) + w(n-1)
+
+;DX now has 20*angle
+mov 100_angle3, dx ;store for next iteration
+
+mov al, 00h ;make oe low
+out creg2,al
+
+;manage motor speed. If it is rotating equalize count in all gyroscopes
+;start 50% PWM cycles in all motors, load COUNT = 5*2500 = 12500 = 30D4h
+;counter 1 of 8253(1)
+mov al, 0D4h ;LSB
+out cnt1_1, al
+mov al, 30h ;MSB
+out cnt1_1, al
+;counter 2 of 8253(1)
+mov al, 0D4h ;LSB
+out cnt2_1, al
+mov al, 30h ;MSB
+out cnt2_1, al
+;counter 0 of 8253(2)
+mov al, 0D4h ;LSB
+out cnt0_2, al
+mov al, 30h ;MSB
+out cnt0_2, al
+;counter 1 of 8253(2)
+mov al, 0D4h ;LSB
+out cnt1_2, al
+mov al, 30h ;MSB
+out cnt1_2, al
+
+ad_isr_end:
+
+iret
+
+
+
+
+;data storage for gyro calculations
+org 0000h ;because we have set DS = 0200h, so DS:addr should be at correct location
+; and so addr should start at 0000h
+current_gyro db 00h
+
+100_angle1 dw 0000h
+old_velocity1 dw 0000h
+
+100_angle2 dw 0000h
+old_velocity2 dw 0000h
+
+100_angle3 dw 0000h
+old_velocity3 dw 0000h
+

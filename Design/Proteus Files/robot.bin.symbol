@@ -1,0 +1,44 @@
+< THE SYMBOL TABLE >  robot.bin  --  emu8086 assembler version: 4.08 
+===================================================================================================
+Name                     	Offset    	Size      	Type      	Segment   
+===================================================================================================
+ST1                      	00400     	-1        	LABEL     	(NOSEG)   
+REALTIME                 	00486     	-1        	LABEL     	(NOSEG)   
+IR_BEG                   	00486     	-1        	LABEL     	(NOSEG)   
+IR1                      	00490     	-1        	LABEL     	(NOSEG)   
+IR2                      	0049E     	-1        	LABEL     	(NOSEG)   
+IR3                      	004AC     	-1        	LABEL     	(NOSEG)   
+IR4                      	004BA     	-1        	LABEL     	(NOSEG)   
+END_IR                   	004C8     	-1        	LABEL     	(NOSEG)   
+GYRO_BEG                 	004C8     	-1        	LABEL     	(NOSEG)   
+G_SEL1                   	004C8     	-1        	LABEL     	(NOSEG)   
+G_WAIT1                  	004EC     	-1        	LABEL     	(NOSEG)   
+G_SEL2                   	004F3     	-1        	LABEL     	(NOSEG)   
+G_WAIT2                  	00517     	-1        	LABEL     	(NOSEG)   
+G_SEL3                   	0051E     	-1        	LABEL     	(NOSEG)   
+G_WAIT3                  	00542     	-1        	LABEL     	(NOSEG)   
+XN                       	0054C     	-1        	LABEL     	(NOSEG)   
+AD_ISR                   	00557     	-1        	LABEL     	(NOSEG)   
+GY_ISR1                  	00573     	-1        	LABEL     	(NOSEG)   
+GY_ISR1_N60_N30          	005BC     	-1        	LABEL     	(NOSEG)   
+GY_ISR1_N30_0            	005CF     	-1        	LABEL     	(NOSEG)   
+GY_ISR1_0_30             	005E2     	-1        	LABEL     	(NOSEG)   
+GY_ISR1_0                	005F5     	-1        	LABEL     	(NOSEG)   
+GY_ISR2                  	00608     	-1        	LABEL     	(NOSEG)   
+GY_ISR2_N60_N30          	00651     	-1        	LABEL     	(NOSEG)   
+GY_ISR2_N30_0            	00663     	-1        	LABEL     	(NOSEG)   
+GY_ISR2_0_30             	00675     	-1        	LABEL     	(NOSEG)   
+GY_ISR2_0                	00687     	-1        	LABEL     	(NOSEG)   
+GY_ISR3                  	00699     	-1        	LABEL     	(NOSEG)   
+AD_ISR_END               	006DB     	-1        	LABEL     	(NOSEG)   
+CURRENT_GYRO             	00000     	1         	VAR       	(NOSEG)   
+100_ANGLE1               	00001     	2         	VAR       	(NOSEG)   
+OLD_VELOCITY1            	00003     	2         	VAR       	(NOSEG)   
+100_ANGLE2               	00005     	2         	VAR       	(NOSEG)   
+OLD_VELOCITY2            	00007     	2         	VAR       	(NOSEG)   
+100_ANGLE3               	00009     	2         	VAR       	(NOSEG)   
+OLD_VELOCITY3            	0000B     	2         	VAR       	(NOSEG)   
+===================================================================================================
+[ 4/23/2016  --  1:10:26 ] 
+< END >
+ 

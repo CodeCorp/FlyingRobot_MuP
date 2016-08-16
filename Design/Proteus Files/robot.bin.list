@@ -1,0 +1,640 @@
+EMU8086 GENERATED LISTING. MACHINE CODE <- SOURCE.
+ 
+robot.bin -- emu8086 assembler version: 4.08  
+ 
+[ 4/23/2016  --  1:10:26 ] 
+ 
+===================================================================================================
+[LINE]     LOC: MACHINE CODE                          SOURCE
+===================================================================================================
+ 
+[   1]        :                                       #make_bin#
+[   2]        :                                       
+[   3]        :                                       #LOAD_SEGMENT=FFFFh#
+[   4]        :                                       #LOAD_OFFSET=0000h#
+[   5]        :                                       
+[   6]        :                                       #CS=0000h#
+[   7]        :                                       #IP=0000h#
+[   8]        :                                       
+[   9]        :                                       #DS=0000h#
+[  10]        :                                       #ES=0000h#
+[  11]        :                                       
+[  12]        :                                       #SS=0000h#
+[  13]        :                                       #SP=FFFEh#
+[  14]        :                                       
+[  15]        :                                       #AX=0000h#
+[  16]        :                                       #BX=0000h#
+[  17]        :                                       #CX=0000h#
+[  18]        :                                       #DX=0000h#
+[  19]        :                                       #SI=0000h#
+[  20]        :                                       #DI=0000h#
+[  21]        :                                       #BP=0000h#
+[  22]        :                                       
+[  23]        :                                       ; add your code here
+[  24]        :                                       
+[  25]        :                                       
+[  26]    06DC: 00 00 00                              jmp     st1
+[  27]    06DF: 00                                    db 00h
+[  28]    06E0: 00 00                                 dw 0000h
+[  29]    06E2: 00 00                                 dw 0000h
+[  30]    06E4: 00 00                                 dw ad_isr
+[  31]    06E6: 00 00                                 dw 0000h
+[  32]    06E8: ??                                    db 1012 dup(0)
+[  33]        :                                       
+[  34]        :                                       ;main program
+[  35]        :                                       ;declarations
+[  36]        :                                       ;ports for 8255(1) ;motor & ir sensors;
+[  37]        :                                       porta1 equ 80h
+[  38]        :                                       portb1 equ 82h
+[  39]        :                                       portc1 equ 84h
+[  40]        :                                       creg1 equ 86h
+[  41]        :                                       ;ports for  8255(2) ;adc & gyro sensors;
+[  42]        :                                       porta2 equ 90h
+[  43]        :                                       portb2 equ 92h
+[  44]        :                                       portc2 equ 94h
+[  45]        :                                       creg2 equ 96h
+[  46]        :                                       ;ports for 8253(1) ;sqr wave , PWM 1 & 2
+[  47]        :                                       cnt0_1 equ 0A0h
+[  48]        :                                       cnt1_1 equ 0A2h
+[  49]        :                                       cnt2_1 equ 0A4h
+[  50]        :                                       cregc_1 equ 0A6h
+[  51]        :                                       ;ports for 8253(2) ;PWM 3 & 4
+[  52]        :                                       cnt0_2 equ 0B0h
+[  53]        :                                       cnt1_2 equ 0B2h
+[  54]        :                                       cnt2_2 equ 0B4h
+[  55]        :                                       cregc_2 equ 0B6h
+[  56]        :                                       
+[  57]        :                                       
+[  58]    0ADC: ??                                    st1:      cli
+[  59]        :                                       ; intialize ds, es,ss to start of RAM
+[  60]    0ADD: ??                                    mov       ax,0200h
+[  61]    0AE0: ??                                    mov       ds,ax
+[  62]    0AE2: ??                                    mov       es,ax
+[  63]    0AE4: ??                                    mov       ss,ax
+[  64]    0AE6: ??                                    mov       sp,0FFFEH
+[  65]        :                                       
+[  66]        :                                       ;initialise RAM memory locations to be used later
+[  67]    0AE9: ??                                    mov current_gyro, 00h
+[  68]        :                                       
+[  69]    0AEE: ??                                    mov 100_angle1, 0000h
+[  70]    0AF4: ??                                    mov old_velocity1, 0000h
+[  71]        :                                       
+[  72]    0AFA: ??                                    mov 100_angle2, 0000h
+[  73]    0B00: ??                                    mov old_velocity2, 0000h
+[  74]        :                                       
+[  75]    0B06: ??                                    mov 100_angle3, 0000h
+[  76]    0B0C: ??                                    mov old_velocity3, 0000h
+[  77]        :                                       
+[  78]        :                                       ;initialise 8255
+[  79]        :                                       ;intialise 8255(1) ;motor & ir sensors;
+[  80]    0B12: ??                                    mov al, 10000011b ;port a : o/p; port cu : o/p, port cl : i/p, port b unused
+[  81]    0B14: ??                                    out creg1, al
+[  82]        :                                       ;intialise 8255(2) ;adc & gyro sensors;
+[  83]    0B16: ??                                    mov al, 10010010b ;port a : i/p; port cu : o/p, port cl : o/p, port b unused
+[  84]    0B18: ??                                    out creg2, al
+[  85]        :                                       
+[  86]        :                                       ;initialise 8253
+[  87]        :                                       ;initialise 8253(1); sqr wave(MODE3) , PWM 1 & 2 (MODE1)
+[  88]        :                                       ;counter 0
+[  89]    0B1A: ??                                    mov al, 00110110b ;counter0, LSB followed by MSB, mode 3, Binary
+[  90]    0B1C: ??                                    out cregc_1, al
+[  91]        :                                       ;counter 1
+[  92]    0B1E: ??                                    mov al, 01110010b;counter1, LSB followed by MSB, mode 1, Binary
+[  93]    0B20: ??                                    out cregc_1, al
+[  94]        :                                       ;counter 2
+[  95]    0B22: ??                                    mov al, 10110010b;counter2, LSB followed by MSB, mode 1, Binary
+[  96]    0B24: ??                                    out cregc_1, al
+[  97]        :                                       ;initialise 8253(2); PWM 3 & 4 (MODE1)
+[  98]        :                                       ;counter 0
+[  99]    0B26: ??                                    mov al, 00110010b;counter0, LSB followed by MSB, mode 1, Binary
+[ 100]    0B28: ??                                    out cregc_2, al
+[ 101]        :                                       ;counter 1
+[ 102]    0B2A: ??                                    mov al, 01110010b;counter1, LSB followed by MSB, mode 1, Binary
+[ 103]    0B2C: ??                                    out cregc_2, al
+[ 104]        :                                       
+[ 105]        :                                       ;load counts in 8253
+[ 106]        :                                       ;load count of 25,000d (61A8H) in counter0 of 8253(1)
+[ 107]    0B2E: ??                                    mov al, 0A8h;LSB of count
+[ 108]    0B30: ??                                    out cnt0_1, al
+[ 109]    0B32: ??                                    mov al, 61h;MSB of count
+[ 110]    0B34: ??                                    out cnt0_1, al
+[ 111]        :                                       ;start 50% PWM cycles in all motors, load COUNT = 5*2500 = 12500 = 30D4h
+[ 112]        :                                       ;counter 1 of 8253(1)
+[ 113]    0B36: ??                                    mov al, 0D4h ;LSB
+[ 114]    0B38: ??                                    out cnt1_1, al
+[ 115]    0B3A: ??                                    mov al, 30h ;MSB
+[ 116]    0B3C: ??                                    out cnt1_1, al
+[ 117]        :                                       ;counter 2 of 8253(1)
+[ 118]    0B3E: ??                                    mov al, 0D4h ;LSB
+[ 119]    0B40: ??                                    out cnt2_1, al
+[ 120]    0B42: ??                                    mov al, 30h ;MSB
+[ 121]    0B44: ??                                    out cnt2_1, al
+[ 122]        :                                       ;counter 0 of 8253(2)
+[ 123]    0B46: ??                                    mov al, 0D4h ;LSB
+[ 124]    0B48: ??                                    out cnt0_2, al
+[ 125]    0B4A: ??                                    mov al, 30h ;MSB
+[ 126]    0B4C: ??                                    out cnt0_2, al
+[ 127]        :                                       ;counter 1 of 8253(2)
+[ 128]    0B4E: ??                                    mov al, 0D4h ;LSB
+[ 129]    0B50: ??                                    out cnt1_2, al
+[ 130]    0B52: ??                                    mov al, 30h ;MSB
+[ 131]    0B54: ??                                    out cnt1_2, al
+[ 132]        :                                       ;to start , give correct input to motor drivers, PWM make PC7 of 8255(2) = 1
+[ 133]        :                                       ;set port a output (for motor drivers)
+[ 134]    0B56: ??                                    mov al, 10011001b;motor 1,4 anti; motor 2,3 clk
+[ 135]    0B58: ??                                    out porta1, al
+[ 136]        :                                       
+[ 137]        :                                       ;bsr, set PC7 of 8255(2)
+[ 138]    0B5A: ??                                    mov al, 00001111b
+[ 139]    0B5C: ??                                    out creg2, al
+[ 140]        :                                       
+[ 141]        :                                       ;initally all the IR sensors should be off thus make PC upper of 8255(1) high
+[ 142]    0B5E: ??                                    mov al, 11110000b
+[ 143]    0B60: ??                                    out portc1, al
+[ 144]        :                                       
+[ 145]        :                                       ;-------------INITIALISATIONS OVER---------------------;
+[ 146]        :                                       ;-------------REALTIME THING STARTS--------------------;
+[ 147]        :                                       
+[ 148]        :                                       ;<<<<<<<<<<<<<<           IR             >>>>>>>>>>>>>>
+[ 149]    0B62:                                       realtime:
+[ 150]        :                                       ;check IR sensors connected to lower port c of 8255(1)
+[ 151]    0B62:                                       ir_beg:
+[ 152]    0B62: ??                                    in al, portc1
+[ 153]    0B64: ??                                    and al, 00001111b ;as only the lower port c matters
+[ 154]    0B66: ??                                    mov bl, al
+[ 155]    0B68: ??                                    mov bh, al ; bh is for backup
+[ 156]    0B6A: ??                                    mov ah, 11111111b ;for the word that we write into port c
+[ 157]        :                                       
+[ 158]    0B6C: ??                                    ir1:      mov bl, bh
+[ 159]    0B6E: ??                                    and bl, 00000001b
+[ 160]    0B71: ??                                    jz ir2
+[ 161]    0B73: ??                                    and ah, 11101111b
+[ 162]    0B76: ??                                    mov al, ah
+[ 163]    0B78: ??                                    out portc1, al
+[ 164]        :                                       
+[ 165]    0B7A: ??                                    ir2:      mov bl, bh
+[ 166]    0B7C: ??                                    and bl, 00000010b
+[ 167]    0B7F: ??                                    jz ir3
+[ 168]    0B81: ??                                    and ah, 11011111b
+[ 169]    0B84: ??                                    mov al, ah
+[ 170]    0B86: ??                                    out portc1, al
+[ 171]        :                                       
+[ 172]    0B88: ??                                    ir3:      mov bl, bh
+[ 173]    0B8A: ??                                    and bl, 00000100b
+[ 174]    0B8D: ??                                    jz ir4
+[ 175]    0B8F: ??                                    and ah, 10111111b
+[ 176]    0B92: ??                                    mov al, ah
+[ 177]    0B94: ??                                    out portc1, al
+[ 178]        :                                       
+[ 179]    0B96: ??                                    ir4:      mov bl, bh
+[ 180]    0B98: ??                                    and bl, 00001000b
+[ 181]    0B9B: ??                                    jz end_ir
+[ 182]    0B9D: ??                                    and ah, 01111111b
+[ 183]    0BA0: ??                                    mov al, ah
+[ 184]    0BA2: ??                                    out portc1, al
+[ 185]        :                                       
+[ 186]        :                                       
+[ 187]    0BA4:                                       end_ir:
+[ 188]        :                                       
+[ 189]        :                                       ;<<<<<<<<<<<<<<           GYRO           >>>>>>>>>>>>>>
+[ 190]        :                                       
+[ 191]    0BA4:                                       gyro_beg:
+[ 192]        :                                       
+[ 193]    0BA4:                                       g_sel1:
+[ 194]        :                                       ;make current_gyro = invalid, ie, if NMI is received, it won't do anything with adc value
+[ 195]    0BA4: ??                                    mov current_gyro, 0fh
+[ 196]        :                                       ;select ch0 (gyro 1)
+[ 197]    0BA9: ??                                    mov al, 00h
+[ 198]    0BAB: ??                                    out portc2, al
+[ 199]        :                                       ;give ale
+[ 200]    0BAD: ??                                    mov al, 00100000b
+[ 201]    0BAF: ??                                    out portc2, al
+[ 202]        :                                       ;give soc
+[ 203]    0BB1: ??                                    mov al, 00110000b
+[ 204]    0BB3: ??                                    out portc2, al
+[ 205]        :                                       
+[ 206]    0BB5: ??                                    nop
+[ 207]    0BB6: ??                                    nop
+[ 208]    0BB7: ??                                    nop
+[ 209]    0BB8: ??                                    nop
+[ 210]        :                                       ;make ale 0
+[ 211]    0BB9: ??                                    mov al, 00010000b
+[ 212]    0BBB: ??                                    out portc2, al
+[ 213]        :                                       ;make soc 0
+[ 214]    0BBD: ??                                    mov al, 00000000b
+[ 215]    0BBF: ??                                    out portc2, al
+[ 216]        :                                       ;make current_gyro = 1
+[ 217]    0BC1: ??                                    mov current_gyro, 01h
+[ 218]        :                                       
+[ 219]        :                                       ;wait some time - interrupt should happen in between this loop
+[ 220]    0BC6: ??                                    mov bl, 30
+[ 221]    0BC8:                                       g_wait1:
+[ 222]    0BC8: ??                                    dec bl
+[ 223]    0BCA: ??                                    cmp bl, 0
+[ 224]    0BCD: ??                                    jnz g_wait1
+[ 225]        :                                       
+[ 226]    0BCF:                                       g_sel2:
+[ 227]        :                                       ;make current_gyro = invalid, ie, if NMI is received, it won't do anything with adc value
+[ 228]    0BCF: ??                                    mov current_gyro, 0fh
+[ 229]        :                                       ;select ch1 (gyro 2)
+[ 230]    0BD4: ??                                    mov al, 01h
+[ 231]    0BD6: ??                                    out portc2, al
+[ 232]        :                                       ;give ale
+[ 233]    0BD8: ??                                    mov al, 00100000b
+[ 234]    0BDA: ??                                    out portc2, al
+[ 235]        :                                       ;give soc
+[ 236]    0BDC: ??                                    mov al, 00110000b
+[ 237]    0BDE: ??                                    out portc2, al
+[ 238]        :                                       
+[ 239]    0BE0: ??                                    nop
+[ 240]    0BE1: ??                                    nop
+[ 241]    0BE2: ??                                    nop
+[ 242]    0BE3: ??                                    nop
+[ 243]        :                                       ;make ale 0
+[ 244]    0BE4: ??                                    mov al, 00010000b
+[ 245]    0BE6: ??                                    out portc2, al
+[ 246]        :                                       ;make soc 0
+[ 247]    0BE8: ??                                    mov al, 00000000b
+[ 248]    0BEA: ??                                    out portc2, al
+[ 249]        :                                       ;make current_gyro = 1
+[ 250]    0BEC: ??                                    mov current_gyro, 02h
+[ 251]        :                                       
+[ 252]        :                                       ;wait some time - interrupt should happen in between this loop
+[ 253]    0BF1: ??                                    mov bl, 30
+[ 254]    0BF3:                                       g_wait2:
+[ 255]    0BF3: ??                                    dec bl
+[ 256]    0BF5: ??                                    cmp bl, 0
+[ 257]    0BF8: ??                                    jnz g_wait2
+[ 258]        :                                       
+[ 259]    0BFA:                                       g_sel3:
+[ 260]        :                                       ;make current_gyro = invalid, ie, if NMI is received, it won't do anything with adc value
+[ 261]    0BFA: ??                                    mov current_gyro, 0fh
+[ 262]        :                                       ;select ch2 (gyro 3)
+[ 263]    0BFF: ??                                    mov al, 02h
+[ 264]    0C01: ??                                    out portc2, al
+[ 265]        :                                       ;give ale
+[ 266]    0C03: ??                                    mov al, 00100000b
+[ 267]    0C05: ??                                    out portc2, al
+[ 268]        :                                       ;give soc
+[ 269]    0C07: ??                                    mov al, 00110000b
+[ 270]    0C09: ??                                    out portc2, al
+[ 271]        :                                       
+[ 272]    0C0B: ??                                    nop
+[ 273]    0C0C: ??                                    nop
+[ 274]    0C0D: ??                                    nop
+[ 275]    0C0E: ??                                    nop
+[ 276]        :                                       ;make ale 0
+[ 277]    0C0F: ??                                    mov al, 00010000b
+[ 278]    0C11: ??                                    out portc2, al
+[ 279]        :                                       ;make soc 0
+[ 280]    0C13: ??                                    mov al, 00000000b
+[ 281]    0C15: ??                                    out portc2, al
+[ 282]        :                                       ;make current_gyro = 1
+[ 283]    0C17: ??                                    mov current_gyro, 03h
+[ 284]        :                                       
+[ 285]        :                                       ;wait some time - interrupt should happen in between this loop
+[ 286]    0C1C: ??                                    mov bl, 30
+[ 287]    0C1E:                                       g_wait3:
+[ 288]    0C1E: ??                                    dec bl
+[ 289]    0C20: ??                                    cmp bl, 0
+[ 290]    0C23: ??                                    jnz g_wait3
+[ 291]        :                                       
+[ 292]        :                                       ;>>>>>>>>>>>>>>>>> INTERRUPT GENERATED <<<<<<<<<<<<<<<<<<<
+[ 293]        :                                       
+[ 294]        :                                       ; using code from the keyboard interfaing as reference
+[ 295]        :                                       ; delay of approx 1 sec
+[ 296]    0C25: ??                                    mov cx, 8000
+[ 297]    0C28: ??                                    xn: loop xn
+[ 298]        :                                       
+[ 299]        :                                       ;reset ir values
+[ 300]    0C2A: ??                                    mov bl, 00h
+[ 301]    0C2C: ??                                    mov al, 11111111b
+[ 302]    0C2E: ??                                    out portc1, al
+[ 303]        :                                       
+[ 304]        :                                       ;go back to initial realtime starting block
+[ 305]    0C30: ??                                    jmp realtime
+[ 306]        :                                       
+[ 307]        :                                       ;ISR of interrupt generated after conversion is completed
+[ 308]    0C33:                                       ad_isr:
+[ 309]        :                                       
+[ 310]    0C33: ??                                    mov dl,current_gyro
+[ 311]    0C37: ??                                    cmp dl, 01h
+[ 312]    0C3A: ??                                    jz gy_isr1 ;if current_gyro is 1
+[ 313]    0C3C: ??                                    cmp dl, 02h
+[ 314]    0C3F: ??                                    jz gy_isr2 ;if current_gyro is 2
+[ 315]    0C44: ??                                    cmp dl, 03h
+[ 316]    0C47: ??                                    jz gy_isr3 ;if current_gyro is 3
+[ 317]        :                                       
+[ 318]    0C4C: ??                                    jmp ad_isr_end ;reset it to 1 for next iteration
+[ 319]        :                                       
+[ 320]    0C4F:                                       gy_isr1:
+[ 321]    0C4F: ??                                    mov al, 00001000b ;make oe high
+[ 322]    0C51: ??                                    out creg2,al
+[ 323]        :                                       
+[ 324]    0C53: ??                                    in al, porta2 ;read the value given by adc
+[ 325]    0C55: ??                                    sub al, 80h
+[ 326]        :                                       ;al now has the angular velocity, to get angle integrate
+[ 327]    0C57: ??                                    cbw
+[ 328]    0C58: ??                                    mov dx, ax ;dx has the new velocity
+[ 329]    0C5A: ??                                    mov cx, dx ;temp storage
+[ 330]        :                                       
+[ 331]        :                                       ;get 20*new_angle
+[ 332]    0C5C: ??                                    add dx, old_velocity1; dx = w(n) + w(n-1)
+[ 333]    0C60: ??                                    mov old_velocity1, cx ;store for next iteration
+[ 334]    0C64: ??                                    mov ax, 100_angle1 ;the old angle
+[ 335]    0C67: ??                                    add dx, ax ;dx holds 20*angle;dx = 20*old_angle +  w(n) + w(n-1)
+[ 336]        :                                       
+[ 337]        :                                       ;DX now has 20*angle
+[ 338]    0C69: ??                                    mov 100_angle1, dx ;store for next iteration
+[ 339]        :                                       
+[ 340]    0C6D: ??                                    mov al, 00h ;make oe low
+[ 341]    0C6F: ??                                    out creg2,al
+[ 342]        :                                       
+[ 343]        :                                       ;manage motor speeds
+[ 344]        :                                       ;if 100_angle1 aka dx > 0 degrees then speed up motors 2 & 3
+[ 345]        :                                       ;if dx == 0 don't speed up
+[ 346]        :                                       ;elseif dx < 0 speed up motors 1 & 4
+[ 347]        :                                       ;cmp dx, 0B3h ;-60 degrees
+[ 348]    0C71: ??                                    cmp dx, 59h ;-30 degrees
+[ 349]    0C74: ??                                    jl gy_isr1_n60_n30 ; between -60 and -30 (will work for less than -60 also)
+[ 350]    0C76: ??                                    cmp dx, 00h ;0 degrees
+[ 351]    0C79: ??                                    jl gy_isr1_n30_0 ; between -30 and 0
+[ 352]    0C7B: ??                                    cmp dx, 00h ;0 degrees
+[ 353]    0C7E: ??                                    je gy_isr1_0 ; if it is 0
+[ 354]    0C80: ??                                    cmp dx, 26h ;+30 degrees
+[ 355]    0C83: ??                                    jl gy_isr1_0_30 ; between 0 and +30
+[ 356]        :                                       ;cmp dx, 4Dh ;+60 degrees
+[ 357]        :                                       ; anything above 30
+[ 358]        :                                       
+[ 359]        :                                       ;for anything above 30 - load duty cycle of 70%, ie count of 3*2500d =  7500d = 1D4Ch in motors 3
+[ 360]        :                                       ;                        load duty cycle of 30%, ie count of 7*2500d = 17500d = 445Ch in motors 1
+[ 361]        :                                       ;counter 1 of 8253(1)
+[ 362]    0C85: ??                                    mov al, 5Ch ;LSB
+[ 363]    0C87: ??                                    out cnt1_1, al
+[ 364]    0C89: ??                                    mov al, 44h ;MSB
+[ 365]    0C8B: ??                                    out cnt1_1, al
+[ 366]        :                                       ;counter 0 of 8253(2)
+[ 367]    0C8D: ??                                    mov al, 4Ch ;LSB
+[ 368]    0C8F: ??                                    out cnt0_2, al
+[ 369]    0C91: ??                                    mov al, 1Dh ;MSB
+[ 370]    0C93: ??                                    out cnt0_2, al
+[ 371]        :                                       
+[ 372]    0C95: ??                                    jmp ad_isr_end
+[ 373]        :                                       
+[ 374]    0C98:                                       gy_isr1_n60_n30:
+[ 375]        :                                       ;for -60 < DX < -30 - load duty cycle of 70%, ie count of 3*2500d =  7500d = 1D4Ch in motors 1
+[ 376]        :                                       ;                     load duty cycle of 30%, ie count of 7*2500d = 17500d = 445Ch in motors 3
+[ 377]        :                                       ;counter 1 of 8253(1)
+[ 378]    0C98: ??                                    mov al, 4Ch ;LSB
+[ 379]    0C9A: ??                                    out cnt1_1, al
+[ 380]    0C9C: ??                                    mov al, 1Dh ;MSB
+[ 381]    0C9E: ??                                    out cnt1_1, al
+[ 382]        :                                       ;counter 0 of 8253(2)
+[ 383]    0CA0: ??                                    mov al, 5Ch ;LSB
+[ 384]    0CA2: ??                                    out cnt0_2, al
+[ 385]    0CA4: ??                                    mov al, 44h ;MSB
+[ 386]    0CA6: ??                                    out cnt0_2, al
+[ 387]        :                                       
+[ 388]    0CA8: ??                                    jmp ad_isr_end
+[ 389]        :                                       
+[ 390]    0CAB:                                       gy_isr1_n30_0:
+[ 391]        :                                       ;for -30 < DX < 0 - load duty cycle of 60%, ie count of 4*2500d = 10000d = 2710h in motors 1
+[ 392]        :                                       ;                   load duty cycle of 40%, ie count of 6*2500d = 15000d = 3A98h in motors 3
+[ 393]        :                                       ;counter 1 of 8253(1)
+[ 394]    0CAB: ??                                    mov al, 10h ;LSB
+[ 395]    0CAD: ??                                    out cnt1_1, al
+[ 396]    0CAF: ??                                    mov al, 27h ;MSB
+[ 397]    0CB1: ??                                    out cnt1_1, al
+[ 398]        :                                       ;counter 0 of 8253(2)
+[ 399]    0CB3: ??                                    mov al, 98h ;LSB
+[ 400]    0CB5: ??                                    out cnt0_2, al
+[ 401]    0CB7: ??                                    mov al, 3Ah ;MSB
+[ 402]    0CB9: ??                                    out cnt0_2, al
+[ 403]        :                                       
+[ 404]    0CBB: ??                                    jmp ad_isr_end
+[ 405]        :                                       
+[ 406]    0CBE:                                       gy_isr1_0_30:
+[ 407]        :                                       ;for 0 < DX < 30 - load duty cycle of 60%, ie count of 4*2500d = 10000d = 2710h in motors 3
+[ 408]        :                                       ;                  load duty cycle of 40%, ie count of 6*2500d = 15000d = 3A98h in motors 1
+[ 409]        :                                       ;counter 1 of 8253(1)
+[ 410]    0CBE: ??                                    mov al, 98h ;LSB
+[ 411]    0CC0: ??                                    out cnt2_1, al
+[ 412]    0CC2: ??                                    mov al, 3Ah ;MSB
+[ 413]    0CC4: ??                                    out cnt2_1, al
+[ 414]        :                                       ;counter 0 of 8253(2)
+[ 415]    0CC6: ??                                    mov al, 10h ;LSB
+[ 416]    0CC8: ??                                    out cnt0_1, al
+[ 417]    0CCA: ??                                    mov al, 27h ;MSB
+[ 418]    0CCC: ??                                    out cnt0_1, al
+[ 419]        :                                       
+[ 420]    0CCE: ??                                    jmp ad_isr_end
+[ 421]        :                                       
+[ 422]    0CD1:                                       gy_isr1_0:
+[ 423]        :                                       ;for DX = 0
+[ 424]        :                                       ;start 50% PWM cycles in all motors, load COUNT = 5*2500 = 12500 = 30D4h
+[ 425]        :                                       ;counter 1 of 8253(1)
+[ 426]    0CD1: ??                                    mov al, 0D4h ;LSB
+[ 427]    0CD3: ??                                    out cnt1_1, al
+[ 428]    0CD5: ??                                    mov al, 30h ;MSB
+[ 429]    0CD7: ??                                    out cnt1_1, al
+[ 430]        :                                       ;counter 0 of 8253(2)
+[ 431]    0CD9: ??                                    mov al, 0D4h ;LSB
+[ 432]    0CDB: ??                                    out cnt0_2, al
+[ 433]    0CDD: ??                                    mov al, 30h ;MSB
+[ 434]    0CDF: ??                                    out cnt0_2, al
+[ 435]        :                                       
+[ 436]    0CE1: ??                                    jmp ad_isr_end
+[ 437]        :                                       
+[ 438]    0CE4:                                       gy_isr2:
+[ 439]    0CE4: ??                                    mov al, 00001000b ;make oe high
+[ 440]    0CE6: ??                                    out creg2,al
+[ 441]        :                                       
+[ 442]    0CE8: ??                                    in al, porta2 ;read the value given by adc
+[ 443]    0CEA: ??                                    sub al, 80h
+[ 444]        :                                       ;al now has the angular velocity, to get angle integrate
+[ 445]    0CEC: ??                                    cbw
+[ 446]    0CED: ??                                    mov dx, ax ;dx has the new velocity
+[ 447]    0CEF: ??                                    mov cx, dx ;temp storage
+[ 448]        :                                       
+[ 449]        :                                       ;get 20*new_angle
+[ 450]    0CF1: ??                                    add dx, old_velocity2; dx = w(n) + w(n-1)
+[ 451]    0CF5: ??                                    mov old_velocity2, cx ;store for next iteration
+[ 452]    0CF9: ??                                    mov ax, 100_angle2 ;the old angle
+[ 453]    0CFC: ??                                    add dx, ax ;dx holds 20*angle;dx = 20*old_angle +  w(n) + w(n-1)
+[ 454]        :                                       
+[ 455]        :                                       ;DX now has 20*angle
+[ 456]    0CFE: ??                                    mov 100_angle2, dx ;store for next iteration
+[ 457]        :                                       
+[ 458]    0D02: ??                                    mov al, 00h ;make oe low
+[ 459]    0D04: ??                                    out creg2,al
+[ 460]        :                                       
+[ 461]        :                                       ;manage motor speeds
+[ 462]        :                                       ;if 100_angle1 aka dx > 0 degrees then speed up motors 2 & 3
+[ 463]        :                                       ;if dx == 0 don't speed up
+[ 464]        :                                       ;elseif dx < 0 speed up motors 1 & 4
+[ 465]        :                                       ;cmp dx, 0B3h ;-60 degrees
+[ 466]    0D06: ??                                    cmp dx, 59h ;-30 degrees
+[ 467]    0D09: ??                                    jl gy_isr2_n60_n30 ; between -60 and -30 (will work for less than -60 also)
+[ 468]    0D0B: ??                                    cmp dx, 00h ;0 degrees
+[ 469]    0D0E: ??                                    jl gy_isr2_n30_0 ; between -30 and 0
+[ 470]    0D10: ??                                    cmp dx, 00h ;0 degrees
+[ 471]    0D13: ??                                    je gy_isr2_0 ; if it is 0
+[ 472]    0D15: ??                                    cmp dx, 26h ;+30 degrees
+[ 473]    0D18: ??                                    jl gy_isr2_0_30 ; between 0 and +30
+[ 474]        :                                       ;cmp dx, 4Dh ;+60 degrees
+[ 475]        :                                       ; anything above 30
+[ 476]        :                                       
+[ 477]        :                                       ;for anything above 30 - load duty cycle of 70%, ie count of 3*2500d =  7500d = 1D4Ch in motors 4
+[ 478]        :                                       ;                        load duty cycle of 30%, ie count of 7*2500d = 17500d = 445Ch in motors 2
+[ 479]        :                                       ;counter 2 of 8253(1)
+[ 480]    0D1A: ??                                    mov al, 5Ch ;LSB
+[ 481]    0D1C: ??                                    out cnt2_1, al
+[ 482]    0D1E: ??                                    mov al, 44h ;MSB
+[ 483]    0D20: ??                                    out cnt2_1, al
+[ 484]        :                                       ;counter 1 of 8253(2)
+[ 485]    0D22: ??                                    mov al, 4Ch ;LSB
+[ 486]    0D24: ??                                    out cnt1_2, al
+[ 487]    0D26: ??                                    mov al, 1Dh ;MSB
+[ 488]    0D28: ??                                    out cnt1_2, al
+[ 489]        :                                       
+[ 490]    0D2A: ??                                    jmp ad_isr_end
+[ 491]        :                                       
+[ 492]    0D2D:                                       gy_isr2_n60_n30:
+[ 493]        :                                       ;for -60 < DX < -30 - load duty cycle of 70%, ie count of 3*2500d =  7500d = 1D4Ch in motors 2
+[ 494]        :                                       ;                     load duty cycle of 30%, ie count of 7*2500d = 17500d = 445Ch in motors 4
+[ 495]        :                                       ;counter 2 of 8253(1)
+[ 496]    0D2D: ??                                    mov al, 4Ch ;LSB
+[ 497]    0D2F: ??                                    out cnt2_1, al
+[ 498]    0D31: ??                                    mov al, 1Dh ;MSB
+[ 499]    0D33: ??                                    out cnt2_1, al
+[ 500]        :                                       ;counter 1 of 8253(2)
+[ 501]    0D35: ??                                    mov al, 5Ch ;LSB
+[ 502]    0D37: ??                                    out cnt1_2, al
+[ 503]    0D39: ??                                    mov al, 44h ;MSB
+[ 504]    0D3B: ??                                    out cnt1_2, al
+[ 505]        :                                       
+[ 506]    0D3D: ??                                    jmp ad_isr_end
+[ 507]        :                                       
+[ 508]    0D3F:                                       gy_isr2_n30_0:
+[ 509]        :                                       ;for -30 < DX < 0 - load duty cycle of 60%, ie count of 4*2500d = 10000d = 2710h in motors 2
+[ 510]        :                                       ;                   load duty cycle of 40%, ie count of 6*2500d = 15000d = 3A98h in motors 4
+[ 511]        :                                       ;counter 2 of 8253(1)
+[ 512]    0D3F: ??                                    mov al, 10h ;LSB
+[ 513]    0D41: ??                                    out cnt2_1, al
+[ 514]    0D43: ??                                    mov al, 27h ;MSB
+[ 515]    0D45: ??                                    out cnt2_1, al
+[ 516]        :                                       ;counter 1 of 8253(2)
+[ 517]    0D47: ??                                    mov al, 98h ;LSB
+[ 518]    0D49: ??                                    out cnt1_2, al
+[ 519]    0D4B: ??                                    mov al, 3Ah ;MSB
+[ 520]    0D4D: ??                                    out cnt1_2, al
+[ 521]        :                                       
+[ 522]    0D4F: ??                                    jmp ad_isr_end
+[ 523]        :                                       
+[ 524]    0D51:                                       gy_isr2_0_30:
+[ 525]        :                                       ;for 0 < DX < 30 - load duty cycle of 60%, ie count of 4*2500d = 10000d = 2710h in motors 4
+[ 526]        :                                       ;                  load duty cycle of 40%, ie count of 6*2500d = 15000d = 3A98h in motors 2
+[ 527]        :                                       ;counter 2 of 8253(1)
+[ 528]    0D51: ??                                    mov al, 98h ;LSB
+[ 529]    0D53: ??                                    out cnt2_1, al
+[ 530]    0D55: ??                                    mov al, 3Ah ;MSB
+[ 531]    0D57: ??                                    out cnt2_1, al
+[ 532]        :                                       ;counter 1 of 8253(2)
+[ 533]    0D59: ??                                    mov al, 10h ;LSB
+[ 534]    0D5B: ??                                    out cnt1_2, al
+[ 535]    0D5D: ??                                    mov al, 27h ;MSB
+[ 536]    0D5F: ??                                    out cnt1_2, al
+[ 537]        :                                       
+[ 538]    0D61: ??                                    jmp ad_isr_end
+[ 539]        :                                       
+[ 540]    0D63:                                       gy_isr2_0:
+[ 541]        :                                       ;for DX = 0
+[ 542]        :                                       ;start 50% PWM cycles in all motors, load COUNT = 5*2500 = 12500 = 30D4h
+[ 543]        :                                       ;counter 2 of 8253(1)
+[ 544]    0D63: ??                                    mov al, 0D4h ;LSB
+[ 545]    0D65: ??                                    out cnt2_1, al
+[ 546]    0D67: ??                                    mov al, 30h ;MSB
+[ 547]    0D69: ??                                    out cnt2_1, al
+[ 548]        :                                       ;counter 1 of 8253(2)
+[ 549]    0D6B: ??                                    mov al, 0D4h ;LSB
+[ 550]    0D6D: ??                                    out cnt1_2, al
+[ 551]    0D6F: ??                                    mov al, 30h ;MSB
+[ 552]    0D71: ??                                    out cnt1_2, al
+[ 553]        :                                       
+[ 554]    0D73: ??                                    jmp ad_isr_end
+[ 555]        :                                       
+[ 556]    0D75:                                       gy_isr3:
+[ 557]    0D75: ??                                    mov al, 00001000b ;make oe high
+[ 558]    0D77: ??                                    out creg2,al
+[ 559]        :                                       
+[ 560]    0D79: ??                                    in al, porta2 ;read the value given by adc
+[ 561]    0D7B: ??                                    sub al, 80h
+[ 562]        :                                       ;al now has the angular velocity, to get angle integrate
+[ 563]    0D7D: ??                                    cbw
+[ 564]    0D7E: ??                                    mov dx, ax ;dx has the new velocity
+[ 565]    0D80: ??                                    mov cx, dx ;temp storage
+[ 566]        :                                       
+[ 567]        :                                       ;get 20*new_angle
+[ 568]    0D82: ??                                    add dx, old_velocity3; dx = w(n) + w(n-1)
+[ 569]    0D86: ??                                    mov old_velocity3, cx ;store for next iteration
+[ 570]    0D8A: ??                                    mov ax, 100_angle3 ;the old angle
+[ 571]    0D8D: ??                                    add dx, ax ;dx holds 20*angle;dx = 20*old_angle +  w(n) + w(n-1)
+[ 572]        :                                       
+[ 573]        :                                       ;DX now has 20*angle
+[ 574]    0D8F: ??                                    mov 100_angle3, dx ;store for next iteration
+[ 575]        :                                       
+[ 576]    0D93: ??                                    mov al, 00h ;make oe low
+[ 577]    0D95: ??                                    out creg2,al
+[ 578]        :                                       
+[ 579]        :                                       ;manage motor speed. If it is rotating equalize count in all gyroscopes
+[ 580]        :                                       ;start 50% PWM cycles in all motors, load COUNT = 5*2500 = 12500 = 30D4h
+[ 581]        :                                       ;counter 1 of 8253(1)
+[ 582]    0D97: ??                                    mov al, 0D4h ;LSB
+[ 583]    0D99: ??                                    out cnt1_1, al
+[ 584]    0D9B: ??                                    mov al, 30h ;MSB
+[ 585]    0D9D: ??                                    out cnt1_1, al
+[ 586]        :                                       ;counter 2 of 8253(1)
+[ 587]    0D9F: ??                                    mov al, 0D4h ;LSB
+[ 588]    0DA1: ??                                    out cnt2_1, al
+[ 589]    0DA3: ??                                    mov al, 30h ;MSB
+[ 590]    0DA5: ??                                    out cnt2_1, al
+[ 591]        :                                       ;counter 0 of 8253(2)
+[ 592]    0DA7: ??                                    mov al, 0D4h ;LSB
+[ 593]    0DA9: ??                                    out cnt0_2, al
+[ 594]    0DAB: ??                                    mov al, 30h ;MSB
+[ 595]    0DAD: ??                                    out cnt0_2, al
+[ 596]        :                                       ;counter 1 of 8253(2)
+[ 597]    0DAF: ??                                    mov al, 0D4h ;LSB
+[ 598]    0DB1: ??                                    out cnt1_2, al
+[ 599]    0DB3: ??                                    mov al, 30h ;MSB
+[ 600]    0DB5: ??                                    out cnt1_2, al
+[ 601]        :                                       
+[ 602]    0DB7:                                       ad_isr_end:
+[ 603]        :                                       
+[ 604]    0DB7: ??                                    iret
+[ 605]        :                                       
+[ 606]        :                                       
+[ 607]        :                                       
+[ 608]        :                                       
+[ 609]        :                                       ;data storage for gyro calculations
+[ 610]        :                                       org 0000h ;because we have set DS = 0200h, so DS:addr should be at correct location
+[ 611]        :                                       ; and so addr should start at 0000h
+[ 612]    06DC: 00                                    current_gyro db 00h
+[ 613]        :                                       
+[ 614]    06DD: 00 00                                 100_angle1 dw 0000h
+[ 615]    06DF: 00 00                                 old_velocity1 dw 0000h
+[ 616]        :                                       
+[ 617]    06E1: 00 00                                 100_angle2 dw 0000h
+[ 618]    06E3: 00 00                                 old_velocity2 dw 0000h
+[ 619]        :                                       
+[ 620]    06E5: 00 00                                 100_angle3 dw 0000h
+[ 621]    06E7: 00 00                                 old_velocity3 dw 0000h
+[ 622]        :                                       
+ 
+===================================================================================================
+ 
+
+
+
+
+===================================================================================================
